@@ -1,7 +1,6 @@
-import { View, Text, FlatList, StyleSheet } from "react-native";
-import CardFilme from "./CardFilme";
+import { View, Text, StyleSheet } from "react-native";
 
-export default function componente() {
+export default function Componente() {
   return (
     <View style={styles.categorias}>
       <Text>Exemplo de componente</Text>
