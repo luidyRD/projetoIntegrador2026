@@ -3,11 +3,11 @@ import {Link} from 'expo-router';
 
 export default function CardMusica({ item }: { item: any }) {
     return (
-        <Link href={`/components/musica/${item.id}`}>
-        <Image
-        source={{ uri: item.imagem }}
-        style={styles.musica}
-        />
+        <Link href={{ pathname: '/components/musica/[id]', params: { id: String(item.id) } } as any}>
+            <Image
+                source={{ uri: item.imagem }}
+                style={styles.musica}
+            />
         </Link>
     );
 }

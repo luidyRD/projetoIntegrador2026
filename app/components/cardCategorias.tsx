@@ -6,7 +6,7 @@ export default function CardCategorias({ item }: { item: any }) {
     <View style={styles.categorias}>
     <Text style={styles.titulo}>{item.titulo}</Text>
     <FlatList
-    data={item.filmes}
+    data={item.albuns}
     keyExtractor={musica => musica.id}
     horizontal={true}
     showsHorizontalScrollIndicator={false}
@@ -17,7 +17,7 @@ export default function CardCategorias({ item }: { item: any }) {
 }
 const styles = StyleSheet.create({
     categorias: {
-        color: '#fff',
+        backgroundColor: '#131212',
     },
     titulo: {
         color: '#fff',

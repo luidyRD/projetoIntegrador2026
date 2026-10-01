@@ -10,7 +10,26 @@ export default function App() {
          <FlatList
          data={categorias}
          keyExtractor={(item) => item.id}
-         renderItem={({ item }) => (<Text>{item.titulo}</Text>)}
+         srcollEnabled={true}
+         renderItem={({ item }) => (
+            <View>
+                <Text>{item.titulo}</Text>
+                <FlatList
+                data={item.albuns}
+                keyExtractor={(album) => album.id}
+                horizontal={true}                
+                renderItem={({ item }) => (
+                    <Link href={{ pathname: '/components/musica/[id]', params: { id: String(item.id) } } as any}>
+                        <Image
+                            source={{ uri: item.imagem }}
+                            style={styles.imagem}
+                            resizeMode="cover"
+                        />
+                    </Link>
+                )}
+            />  
+            </View>
+        )}
          />          
         </View >
     );
@@ -18,7 +37,11 @@ export default function App() {
 
 const styles = StyleSheet.create({
     corFundo: {
-        backgroundColor: '#131212',
+        backgroundColor: '#b93737',
+    },
+    imagem: {
+        width: 180,
+        height: 180,
     }
 });
 
