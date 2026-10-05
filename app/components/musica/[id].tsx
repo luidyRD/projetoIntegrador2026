@@ -1,19 +1,23 @@
-import React from 'react';
-import { View, Text, Image, StyleSheet, ScrollView } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Image, StyleSheet, ScrollView, TextInput, TouchableOpacity, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, Stack } from 'expo-router';
-import DadosMusicas from '../../rotaServidor/dados';
+import DadosAlbuns from '../../rotaServidor/dados';
 
-export default function Musica() {
+export default function AlbumDetalhe() {
+  const [nota, setNota] = useState(0);
+  const [comentario, setComentario] = useState('');
+  const [avaliacoes, setAvaliacoes] = useState<{ nota: number; comentario: string }[]>([]);
+  const [erroAvaliacao, setErroAvaliacao] = useState('');
   const { id } = useLocalSearchParams();
-  const musicId = Array.isArray(id) ? id[0] : id;
+  const albumId = Array.isArray(id) ? id[0] : id;
 
-  const categorias = DadosMusicas();
-  const musicEncontrada = categorias
-    .flatMap((categoria) => categoria.albuns ?? [])
-    .find((musica: any) => musica.id === musicId);
+  const categorias = DadosAlbuns();
+  const albumEncontrado = categorias
+    .flatMap((categoria) => categoria.albuns)
+    .find((album) => album.id === albumId);
 
-  if (!musicEncontrada) {
+  if (!albumEncontrado) {
     return (
       <View style={styles.container}>
         <Text style={styles.titulo}>Album não encontrado</Text>
@@ -21,14 +25,27 @@ export default function Musica() {
     );
   }
 
-  const musica: any = musicEncontrada;
-  const tags = [musica.ano ?? 'N/A', musica.duracao ?? 'N/A', musica.classificacao ?? 'N/A'];
+  const album = albumEncontrado;
+
+  const adicionarAvaliacao = () => {
+    const texto = comentario.trim();
+    if (nota === 0 || !texto) {
+      setErroAvaliacao('Selecione uma nota e escreva um comentário.');
+      return;
+    }
+
+    Keyboard.dismiss();
+    setAvaliacoes((atuais) => [{ nota, comentario: texto }, ...atuais]);
+    setNota(0);
+    setComentario('');
+    setErroAvaliacao('');
+  };
 
   return (
     <>
       <Stack.Screen
         options={{
-          title: musica.titulo,
+          title: album.titulo,
           headerStyle: { backgroundColor: '#131212' },
           headerTitleStyle: { color: '#fff' },
           headerTintColor: '#fff',
@@ -37,28 +54,87 @@ export default function Musica() {
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContainer}>
         <View style={styles.innerContainer}>
           <View style={styles.imagemContainer}>
-            <Image source={{ uri: musica.imagem }} style={styles.imagem} resizeMode="cover" />
+            <Image source={{ uri: album.imagem }} style={styles.imagem} resizeMode="cover" />
             <View style={styles.overlay} />
           </View>
 
           <View style={styles.detalhesContainer}>
-            <Text style={styles.titulo}>{musica.titulo}</Text>
-
-            <View style={styles.tagsContainer}>
-              {tags.map((tag, index) => (
-                <View
-                  key={`${tag}-${index}`}
-                  style={[styles.badge, index === 2 && styles.badgeClassificacao]}
-                >
-                  <Text style={styles.badgeTexto}>{tag}</Text>
-                </View>
-              ))}
-
-              <View style={styles.ratingContainer}>
-                <Ionicons name="star" size={16} color="#FFD700" />
-                <Text style={styles.ratingTexto}>{musica.relevancia ?? 'N/A'}</Text>
+            <Text style={styles.titulo}>{album.titulo}</Text>
+            <Text style={styles.artista}>{album.artista}</Text>
+            <View style={styles.informacoesContainer}>
+              <View style={styles.informacao}>
+                <Text style={styles.rotulo}>Lançamento</Text>
+                <Text style={styles.valor}>{album.ano}</Text>
+              </View>
+              <View style={styles.informacao}>
+                <Text style={styles.rotulo}>Gênero</Text>
+                <Text style={styles.valor}>{album.genero}</Text>
               </View>
             </View>
+          </View>
+
+          <View style={styles.avaliacaoContainer}>
+            <Text style={styles.subtitulo}>Avalie este álbum</Text>
+            <Text style={styles.rotuloNota}>Sua nota</Text>
+            <View style={styles.estrelasContainer}>
+              {[1, 2, 3, 4, 5].map((estrela) => (
+                <TouchableOpacity
+                  key={estrela}
+                  onPress={() => {
+                    setNota(estrela);
+                    setErroAvaliacao('');
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Dar ${estrela} ${estrela === 1 ? 'estrela' : 'estrelas'}`}
+                >
+                  <Ionicons
+                    name={estrela <= nota ? 'star' : 'star-outline'}
+                    size={30}
+                    color="#FFD700"
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TextInput
+              style={styles.campoComentario}
+              placeholder="Escreva sua avaliação..."
+              placeholderTextColor="#B3B3B3"
+              value={comentario}
+              onChangeText={(texto) => {
+                setComentario(texto);
+                setErroAvaliacao('');
+              }}
+              multiline
+              textAlignVertical="top"
+              maxLength={500}
+            />
+
+            {erroAvaliacao ? <Text style={styles.erroAvaliacao}>{erroAvaliacao}</Text> : null}
+
+            <TouchableOpacity
+              style={styles.botaoAvaliar}
+              onPress={adicionarAvaliacao}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.textoBotaoAvaliar}>Adicionar avaliação</Text>
+            </TouchableOpacity>
+
+            {avaliacoes.length > 0 && (
+              <View style={styles.listaAvaliacoes}>
+                <Text style={styles.subtitulo}>Sua avaliação nesta sessão</Text>
+                {avaliacoes.map((avaliacao, index) => (
+                  <View key={`${index}-${avaliacao.nota}`} style={styles.avaliacao}>
+                    <View style={styles.estrelasAvaliacao}>
+                      {Array.from({ length: avaliacao.nota }, (_, estrela) => (
+                        <Ionicons key={estrela} name="star" size={16} color="#FFD700" />
+                      ))}
+                    </View>
+                    <Text style={styles.textoAvaliacao}>{avaliacao.comentario}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         </View>
       </ScrollView>
@@ -99,35 +175,93 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: '700',
   },
-  tagsContainer: {
+  artista: {
+    color: '#B3B3B3',
+    fontSize: 18,
+    marginTop: 6,
+  },
+  informacoesContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    marginTop: 16,
+    marginTop: 20,
+    gap: 32,
+  },
+  informacao: {
+    gap: 4,
+  },
+  rotulo: {
+    color: '#B3B3B3',
+    fontSize: 13,
+  },
+  valor: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  avaliacaoContainer: {
+    marginTop: 32,
+    paddingTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: '#333333',
+  },
+  subtitulo: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 16,
+  },
+  rotuloNota: {
+    color: '#B3B3B3',
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  estrelasContainer: {
+    flexDirection: 'row',
     gap: 8,
+    marginBottom: 16,
   },
-  badge: {
-    backgroundColor: '#2a2a2a',
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  campoComentario: {
+    minHeight: 110,
+    borderWidth: 1,
+    borderColor: '#444444',
+    borderRadius: 10,
+    padding: 12,
+    color: '#FFFFFF',
+    backgroundColor: '#1F1F1F',
+    fontSize: 15,
   },
-  badgeClassificacao: {
-    backgroundColor: '#b31414',
+  erroAvaliacao: {
+    color: '#FF7777',
+    fontSize: 14,
+    marginTop: 8,
   },
-  badgeTexto: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  ratingContainer: {
-    flexDirection: 'row',
+  botaoAvaliar: {
     alignItems: 'center',
-    marginLeft: 4,
+    backgroundColor: '#e4b600',
+    borderRadius: 10,
+    marginTop: 14,
+    paddingVertical: 12,
   },
-  ratingTexto: {
-    color: '#fff',
-    marginLeft: 6,
-    fontWeight: '600',
+  textoBotaoAvaliar: {
+    color: '#131212',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  listaAvaliacoes: {
+    marginTop: 28,
+  },
+  avaliacao: {
+    borderTopWidth: 1,
+    borderTopColor: '#333333',
+    paddingVertical: 14,
+  },
+  estrelasAvaliacao: {
+    flexDirection: 'row',
+    gap: 3,
+  },
+  textoAvaliacao: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    lineHeight: 22,
+    marginTop: 8,
   },
 });

@@ -70,8 +70,8 @@ const styles = StyleSheet.create({
     container: {
         flexDirection: "row",
         alignItems: "center",
-        paddingHorizontal: 0,
-        paddingVertical: 0,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
         gap: 8,
         width: "100%",
     },
@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
     },
     input: {
         flex: 1,
-        height: 35,
+        height: 40,
         color: "#F8FAFC",
         fontSize: 15,
     },
@@ -95,9 +95,9 @@ const styles = StyleSheet.create({
         padding: 4,
     },
     botaoBusca: {
-        backgroundColor: "#E50914",
+        backgroundColor: "#e4b600",
         width: 44,
-        height: 35,
+        height: 40,
         borderRadius: 10,
         justifyContent: "center",
         alignItems: "center",

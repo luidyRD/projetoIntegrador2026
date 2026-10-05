@@ -1,5 +1,5 @@
 import {View, Text, FlatList, StyleSheet} from 'react-native';
-import CardMusica from './musica/cardMusica';
+import CardAlbum from './musica/cardMusica';
 
 export default function CardCategorias({ item }: { item: any }) {
     return (
@@ -7,22 +7,21 @@ export default function CardCategorias({ item }: { item: any }) {
     <Text style={styles.titulo}>{item.titulo}</Text>
     <FlatList
     data={item.albuns}
-    keyExtractor={musica => musica.id}
+    keyExtractor={album => album.id}
     horizontal={true}
     showsHorizontalScrollIndicator={false}
-    renderItem={({ item }) => <CardMusica item={item} />}
+    renderItem={({ item }) => <CardAlbum item={item} />}
     />
     </View>
     );
 }
 const styles = StyleSheet.create({
     categorias: {
-        backgroundColor: '#131212',
+        backgroundColor: '#e90000',
     },
     titulo: {
         color: '#fff',
-        fontSize: 20,
+        fontSize: 23,
         marginLeft: 10,
     },
 });
-

@@ -1,22 +1,22 @@
 import {Image, StyleSheet } from 'react-native';
 import {Link} from 'expo-router';
 
-export default function CardMusica({ item }: { item: any }) {
+export default function CardAlbum({ item }: { item: any }) {
     return (
         <Link href={{ pathname: '/components/musica/[id]', params: { id: String(item.id) } } as any}>
             <Image
                 source={{ uri: item.imagem }}
-                style={styles.musica}
+                style={styles.album}
             />
         </Link>
     );
 }
 const styles = StyleSheet.create({
-    musica: {
-        width: 180,
-        height: 180,
+    album: {
+        width: 160,
+        height: 160,
         borderRadius: 5,
-        margin: 5,
+        margin: 10,
         justifyContent: 'flex-end',
         padding: 10,
     },
