@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, Image, StyleSheet, ScrollView, TextInput, TouchableOpacity, Keyboard } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, Stack } from 'expo-router';
-import DadosAlbuns from '../../rotaServidor/dados';
+import DadosAlbuns, { carregarDadosAlbunsComCapa } from '../../rotaServidor/dados';
 
 export default function AlbumDetalhe() {
   const [nota, setNota] = useState(0);
@@ -13,11 +13,31 @@ export default function AlbumDetalhe() {
   const albumId = Array.isArray(id) ? id[0] : id;
 
   const categorias = DadosAlbuns();
-  const albumEncontrado = categorias
-    .flatMap((categoria) => categoria.albuns)
-    .find((album) => album.id === albumId);
+  const [albumAtual, setAlbumAtual] = useState(
+    categorias
+      .flatMap((categoria) => categoria.albuns)
+      .find((album) => album.id === albumId) ?? null
+  );
 
-  if (!albumEncontrado) {
+  useEffect(() => {
+    let ativo = true;
+
+    carregarDadosAlbunsComCapa().then((dados) => {
+      const encontrado = dados
+        .flatMap((categoria) => categoria.albuns)
+        .find((album) => album.id === albumId);
+
+      if (ativo) {
+        setAlbumAtual(encontrado ?? null);
+      }
+    });
+
+    return () => {
+      ativo = false;
+    };
+  }, [albumId]);
+
+  if (!albumAtual) {
     return (
       <View style={styles.container}>
         <Text style={styles.titulo}>Album não encontrado</Text>
@@ -25,7 +45,7 @@ export default function AlbumDetalhe() {
     );
   }
 
-  const album = albumEncontrado;
+  const album = albumAtual;
 
   const adicionarAvaliacao = () => {
     const texto = comentario.trim();
