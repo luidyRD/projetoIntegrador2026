@@ -61,6 +61,20 @@ export default function AlbumDetalhe() {
     setErroAvaliacao('');
   };
 
+  console.log('validar login');
+
+
+  //let logado=false;
+
+ // if(!logado){
+  //  return (
+     // <View style={styles.container}>
+      //  <Text style={styles.titulo}>Você precisa estar logado para acessar esta página.</Text>
+     // </View>
+  //  );
+ // }
+
+
   return (
     <>
       <Stack.Screen
