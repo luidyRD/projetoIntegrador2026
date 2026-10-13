@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+    <link rel="stylesheet" href="style.css">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+</head>
+
+<body>
+    <div class="wrapper">
+        <div>
+            <h1>Update Password</h1>   
+            <div class="input-box">
+                <input type="text" placeholder="Username" id="username" required>
+            </div>        
+            <div class="input-box">
+                <input type="password" placeholder="New Password" id="password" required>
+            </div>
+            <div class="input-box">
+                <input type="password" placeholder="Confirm New Password" id="password2" required>
+            </div>
+            <div class="input-alert">
+                <p class="alert" id="alert"></p>
+            </div>
+
+            <button type="submit" onclick="update()" class="btn">Save</button>
+
+            <div class="register">
+                <p><a href="index.html">Back</a></p>
+            </div>
+
+        </div>
+
+    </div>
+    <script src="script.js"></script>
+</body>
+
+</html>
