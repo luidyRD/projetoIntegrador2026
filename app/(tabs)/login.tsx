@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import { useState } from "react";
 import {
     KeyboardAvoidingView,
@@ -152,7 +153,7 @@ export default function Login() {
                             <Text style={styles.signupText}>Ainda não tem uma conta?</Text>
                             <Pressable
                                 accessibilityRole="button"
-                                onPress={() => setFeedback("O cadastro ainda não está disponível.")}
+                                onPress={() => router.push("/cadastro")}
                             >
                                 <Text style={styles.textLink}>Criar conta</Text>
                             </Pressable>
