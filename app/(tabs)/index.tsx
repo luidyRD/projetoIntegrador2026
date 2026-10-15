@@ -2,9 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, FlatList, Text, Image } from 'react-native';
 import InputBusca from '../components/inputBusca';
 import { Link } from 'expo-router';
+import { useFonts } from 'expo-font';
 import DadosAlbuns, { Categoria, carregarDadosAlbunsComCapa } from '../rotaServidor/dados';
+import { PlusJakartaSans_700Bold } from '@expo-google-fonts/plus-jakarta-sans';
 
 export default function App() {
+    const [fontsLoaded] = useFonts({ PlusJakartaSans_700Bold });
     const [categorias, setCategorias] = useState<Categoria[]>(DadosAlbuns());
 
     useEffect(() => {
@@ -20,6 +23,10 @@ export default function App() {
             ativo = false;
         };
     }, []);
+
+    if (!fontsLoaded) {
+        return null;
+    }
 
     return (
         <View style={styles.corFundo}>
@@ -69,6 +76,7 @@ const styles = StyleSheet.create({
     titulo: {
         color: '#FFFFFF',
         fontSize: 23,
+        fontFamily: 'PlusJakartaSans_700Bold',
     },
     albumCard: {
         width: 180,
@@ -85,10 +93,12 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: '600',
         marginTop: 6,
+        fontFamily: 'PlusJakartaSans_700Bold'
     },
     albumArtista: {
         color: '#B3B3B3',
         fontSize: 13,
         marginTop: 2,
+        fontFamily: 'PlusJakartaSans_700Bold'
     },
 });
