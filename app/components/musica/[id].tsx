@@ -124,7 +124,7 @@ export default function AlbumDetalhe() {
                   <Ionicons
                     name={estrela <= nota ? 'star' : 'star-outline'}
                     size={30}
-                    color="#FFD700"
+                    color="#ebbd00"
                   />
                 </TouchableOpacity>
               ))}
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   textoBotaoAvaliar: {
-    color: '#131212',
+    color: '#141414',
     fontSize: 15,
     fontWeight: '700',
   },

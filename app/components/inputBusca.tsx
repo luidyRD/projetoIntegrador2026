@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
         padding: 4,
     },
     botaoBusca: {
-        backgroundColor: "#e4b600",
+        backgroundColor: "#141414",
         width: 44,
         height: 40,
         borderRadius: 10,
