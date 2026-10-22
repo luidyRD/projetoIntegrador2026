@@ -4,7 +4,8 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node app.js",
+    "catalogo:enriquecer": "node scripts/enriquecer_catalogo.js --execute"
   },
   "keywords": [],
   "author": "",
@@ -12,6 +13,8 @@
   "type": "commonjs",
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "busboy": "^1.6.0",
+    "dotenv": "^18.0.8",
     "mysql": "^2.18.1"
   }
 }

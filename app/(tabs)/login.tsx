@@ -12,14 +12,17 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { authService } from "../../services/auth";
 
 export default function Login() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [passwordVisible, setPasswordVisible] = useState(false);
     const [feedback, setFeedback] = useState("");
+    const [enviando, setEnviando] = useState(false);
 
-    const handleLogin = () => {
+    const handleLogin = async () => {
+        if (enviando) return;
         if (!email.trim() || !password) {
             setFeedback("Preencha seu e-mail e sua senha para continuar.");
             return;
@@ -30,7 +33,15 @@ export default function Login() {
             return;
         }
 
-        setFeedback("A autenticação ainda não está conectada ao aplicativo.");
+        setEnviando(true);
+        try {
+            await authService.entrar({ email: email.trim(), senha: password });
+            router.replace("/");
+        } catch (error) {
+            setFeedback(error instanceof Error ? error.message : "Não foi possível entrar.");
+        } finally {
+            setEnviando(false);
+        }
     };
 
     const updateEmail = (value: string) => {
@@ -137,8 +148,11 @@ export default function Login() {
                                     pressed && styles.loginButtonPressed,
                                 ]}
                                 onPress={handleLogin}
+                                disabled={enviando}
                             >
-                                <Text style={styles.loginButtonText}>Entrar</Text>
+                                <Text style={styles.loginButtonText}>
+                                    {enviando ? "Entrando..." : "Entrar"}
+                                </Text>
                                 <Ionicons name="arrow-forward" size={19} color="#141414" />
                             </Pressable>
                         </View>

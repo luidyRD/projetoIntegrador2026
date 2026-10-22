@@ -12,18 +12,27 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { authService } from "../services/auth";
 
 export default function Cadastro() {
     const [name, setName] = useState("");
+    const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [passwordVisible, setPasswordVisible] = useState(false);
     const [feedback, setFeedback] = useState("");
+    const [enviando, setEnviando] = useState(false);
 
-    const handleCadastro = () => {
-        if (!name.trim() || !email.trim() || !password || !confirmPassword) {
+    const handleCadastro = async () => {
+        if (enviando) return;
+        if (!name.trim() || !username.trim() || !email.trim() || !password || !confirmPassword) {
             setFeedback("Preencha todos os campos para continuar.");
+            return;
+        }
+
+        if (!/^[\p{L}\p{N}._-]{3,30}$/u.test(username.trim())) {
+            setFeedback("O nome de usuário deve ter de 3 a 30 caracteres (letras, números, ponto, hífen ou sublinhado).");
             return;
         }
 
@@ -42,7 +51,20 @@ export default function Cadastro() {
             return;
         }
 
-        setFeedback("O cadastro ainda não está conectado ao aplicativo.");
+        setEnviando(true);
+        try {
+            await authService.cadastrar({
+                nome: name.trim(),
+                username: username.trim(),
+                email: email.trim(),
+                senha: password,
+            });
+            router.replace("/");
+        } catch (error) {
+            setFeedback(error instanceof Error ? error.message : "Não foi possível criar sua conta.");
+        } finally {
+            setEnviando(false);
+        }
     };
 
     const clearFeedback = () => setFeedback("");
@@ -87,6 +109,28 @@ export default function Cadastro() {
                                         autoComplete="name"
                                         textContentType="name"
                                         returnKeyType="next"
+                                        maxLength={50}
+                                    />
+                                </View>
+                            </View>
+
+                            <View style={styles.field}>
+                                <Text style={styles.label}>Nome de usuário</Text>
+                                <View style={styles.inputWrapper}>
+                                    <Ionicons name="at-outline" size={19} color="#94A3B8" />
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="Seu nome de usuário"
+                                        placeholderTextColor="#64748B"
+                                        value={username}
+                                        onChangeText={(value) => {
+                                            setUsername(value);
+                                            clearFeedback();
+                                        }}
+                                        autoCapitalize="none"
+                                        autoCorrect={false}
+                                        maxLength={30}
+                                        returnKeyType="next"
                                     />
                                 </View>
                             </View>
@@ -110,6 +154,7 @@ export default function Cadastro() {
                                         autoComplete="email"
                                         textContentType="emailAddress"
                                         returnKeyType="next"
+                                        maxLength={30}
                                     />
                                 </View>
                             </View>
@@ -184,8 +229,11 @@ export default function Cadastro() {
                                     pressed && styles.submitButtonPressed,
                                 ]}
                                 onPress={handleCadastro}
+                                disabled={enviando}
                             >
-                                <Text style={styles.submitButtonText}>Criar conta</Text>
+                                <Text style={styles.submitButtonText}>
+                                    {enviando ? "Criando conta..." : "Criar conta"}
+                                </Text>
                                 <Ionicons name="arrow-forward" size={19} color="#141414" />
                             </Pressable>
                         </View>

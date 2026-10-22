@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import produtosService, { Produto } from "@/app/rotaServidor/produtos";
+import produtosService, { Produto } from "@/services/produtos";
 export default function MinhaTela() {
     const [produtos, setProdutos] = useState<Produto[]>([]);
     useEffect(() => {

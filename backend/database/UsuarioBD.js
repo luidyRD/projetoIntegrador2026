@@ -1,108 +1,129 @@
-const mysql = require('mysql')
 const bcrypt = require('bcrypt')
+const { query } = require('./conexao')
 
-class UsuarioBD{
-    static connect(){
-        const connection = mysql.createConnection({
-            host:'localhost',
-            user:'root',
-            password:'',
-            database:'loginBD'
-        })
-        connection.connect()
-        return connection
-    }
-
-    static getUsuarios(callback){
-        const connection = UsuarioBD.connect()
-
-        var sql = 'select name, username, email from usuarios'
-
-        connection.query(sql,(error, results)=>{
-            if(error) throw error
-
-            var usuarios = results
-            callback(usuarios)
-        })
-        connection.end()
-    }
-
-    static async addUsuario(usuario, callback){
-        const connection = UsuarioBD.connect()
-
-        var {name, username, email, password} = usuario
-
-        if(!name || !username || !email || !password){
-            return callback({'error':'Insira todos os dados'})
-        }
-
-        usuario.password = await bcrypt.hash(usuario.password,12)
-
-        var sql = 'insert into usuarios set ?'
-
-        connection.query(sql, usuario,(error, results)=>{
-            if(error) throw error
-
-            callback({'message':'Usuario inserido com sucesso'})
-        })
-        connection.end()
-    }
-
-    static login(usuario, callback){
-        const connection = UsuarioBD.connect()
-
-        var {username, password} = usuario
-
-        if(!username || !password){
-            return callback({'error':'Insira os dados Corretamente'})
-        }
-
-        var sql = 'select username, password from usuarios where username = ?'
-
-        connection.query(sql,username,(error, results)=>{
-            if(error) throw error
-
-            if(results.length == 0){
-                return callback({'error':'Usuario não cadastrado'})
-            }
-
-            var user = results[0]
-
-            var passwordIsValid = bcrypt.compareSync(password,user.password)
-
-            if(usuario.username == user.username && passwordIsValid){
-                return callback({'message':'Logado com sucesso!'})
-            }
-
-            return callback({'error':'Senha Incorreta'})
-
-        })
-        connection.end()
-    }
-
-    static async updatePassword(usuario,callback){
-        const connection = UsuarioBD.connect()
-
-        var {username, password} = usuario
-
-        if(!username || !password){
-            return callback({'error':'Insira os dados Corretamente'})
-        }
-
-        password = await bcrypt.hash(usuario.password,12)
-
-        var sql = 'update usuarios set password = ? where username = ?'
-
-        connection.query(sql,[password,username],(error, results)=>{
-            if(error) throw error
-
-            return callback({'message':'Senha atualizada'})
-
-        })
-        connection.end()
-
-    }
-
-    
+async function buscarPorEmail(email) {
+    const rows = await query(
+        `SELECT id, name, username, email, password
+         FROM usuarios
+         WHERE LOWER(email) = ?
+         LIMIT 1`,
+        [email]
+    )
+    return rows[0] || null
 }
-module.exports = UsuarioBD
+
+async function buscarPorId(id) {
+    const rows = await query(
+        `SELECT id, name, username, email
+         FROM usuarios
+         WHERE id = ?
+         LIMIT 1`,
+        [id]
+    )
+    return rows[0] || null
+}
+
+async function cadastrar({ nome, username, email, senha }) {
+    const existente = await buscarPorEmail(email)
+    if (existente) {
+        const error = new Error('Este e-mail já está cadastrado.')
+        error.statusCode = 409
+        throw error
+    }
+
+    const password = await bcrypt.hash(senha, 12)
+    let resultado
+    try {
+        resultado = await query(
+            'INSERT INTO usuarios (name, username, email, password) VALUES (?, ?, ?, ?)',
+            [nome, username, email, password]
+        )
+    } catch (error) {
+        if (error.code === 'ER_DUP_ENTRY') {
+            const duplicado = new Error(
+                'Este e-mail ou nome de usuário já está cadastrado.'
+            )
+            duplicado.statusCode = 409
+            throw duplicado
+        }
+        throw error
+    }
+    return { id: resultado.insertId, nome, username, email }
+}
+
+async function autenticar(email, senha) {
+    const usuario = await buscarPorEmail(email)
+    if (
+        !usuario ||
+        !usuario.password ||
+        !(await bcrypt.compare(senha, usuario.password))
+    ) {
+        return null
+    }
+    return {
+        id: usuario.id,
+        nome: usuario.name,
+        username: usuario.username,
+        email: usuario.email
+    }
+}
+
+async function atualizarPerfil(id, { nome, username, email, senhaAtual, novaSenha }) {
+    const usuario = await buscarPorEmailOuId(id)
+    if (!usuario) {
+        const error = new Error('Usuário não encontrado.')
+        error.statusCode = 404
+        throw error
+    }
+
+    if (novaSenha) {
+        if (!senhaAtual || !(await bcrypt.compare(senhaAtual, usuario.password))) {
+            const error = new Error('A senha atual está incorreta.')
+            error.statusCode = 401
+            throw error
+        }
+    }
+
+    try {
+        if (novaSenha) {
+            const password = await bcrypt.hash(novaSenha, 12)
+            await query(
+                `UPDATE usuarios
+                 SET name = ?, username = ?, email = ?, password = ?
+                 WHERE id = ?`,
+                [nome, username, email, password, id]
+            )
+        } else {
+            await query(
+                `UPDATE usuarios
+                 SET name = ?, username = ?, email = ?
+                 WHERE id = ?`,
+                [nome, username, email, id]
+            )
+        }
+    } catch (error) {
+        if (error.code === 'ER_DUP_ENTRY') {
+            const duplicado = new Error(
+                'Este e-mail ou nome de usuário já está em uso.'
+            )
+            duplicado.statusCode = 409
+            throw duplicado
+        }
+        throw error
+    }
+
+    return buscarPorId(id)
+}
+
+async function buscarPorEmailOuId(id) {
+    const rows = await query(
+        `SELECT id, name, username, email, password
+         FROM usuarios
+         WHERE id = ?
+         LIMIT 1`,
+        [id]
+    )
+    return rows[0] || null
+}
+
+module.exports = { cadastrar, autenticar, buscarPorId, atualizarPerfil }

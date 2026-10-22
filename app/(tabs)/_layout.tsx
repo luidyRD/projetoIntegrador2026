@@ -1,6 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
-import { Platform } from "react-native";
 
 export default function TabLayout() {
   return (
@@ -21,12 +20,7 @@ export default function TabLayout() {
         },
         tabBarActiveTintColor: "#ffffff",
         tabBarStyle: {
-          backgroundColor: "#141414",
-          borderTopWidth: 1,
-          borderTopColor: "#000000",
-          height: Platform.OS === "ios" ? 88 : 64,
-          paddingBottom: Platform.OS === "ios" ? 30 : 80,
-          paddingTop: 10,
+          display: "none",
         },
         tabBarLabelStyle: {
           fontSize: 12,
@@ -47,7 +41,8 @@ export default function TabLayout() {
           ),
         }}
       />    
-      
+      <Tabs.Screen name="login" options={{ href: null }} />
+      <Tabs.Screen name="rotas/busca/[query]" options={{ href: null }} />
     </Tabs>
   );
 }
