@@ -7,7 +7,13 @@ export default function RootLayout() {
   return (
     <View style={styles.container}>
       <StatusBar style='light' />
-      <Stack>
+      <Stack
+        screenOptions={{
+          headerStyle: { backgroundColor: "#000000" },
+          headerTintColor: "#FFFFFF",
+          headerTitleStyle: { color: "#FFFFFF" },
+        }}
+      >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="favoritos" options={{ title: "Favoritos" }} />
       </Stack>

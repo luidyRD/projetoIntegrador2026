@@ -36,7 +36,7 @@ export default function FavoritosPage() {
             <Stack.Screen
                 options={{
                     title: "Favoritos",
-                    headerStyle: { backgroundColor: "#141414" },
+                    headerStyle: { backgroundColor: "#000000" },
                     headerTitleStyle: { color: "#FFFFFF" },
                     headerTintColor: "#FFFFFF",
                 }}

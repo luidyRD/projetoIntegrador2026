@@ -124,7 +124,7 @@ export default function Perfil() {
             <Stack.Screen
                 options={{
                     title: "Meu perfil",
-                    headerStyle: { backgroundColor: "#141414" },
+                    headerStyle: { backgroundColor: "#000000" },
                     headerTitleStyle: { color: "#FFFFFF" },
                     headerTintColor: "#FFFFFF",
                 }}

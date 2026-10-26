@@ -213,7 +213,7 @@ export default function AlbumDetalhe() {
       <Stack.Screen
         options={{
           title: album.titulo,
-          headerStyle: { backgroundColor: '#131212' },
+          headerStyle: { backgroundColor: '#000000' },
           headerTitleStyle: { color: '#fff' },
           headerTintColor: '#fff',
         }}
