@@ -154,7 +154,7 @@ export default function Cadastro() {
                                         autoComplete="email"
                                         textContentType="emailAddress"
                                         returnKeyType="next"
-                                        maxLength={30}
+                                        maxLength={255}
                                     />
                                 </View>
                             </View>

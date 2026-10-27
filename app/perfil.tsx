@@ -174,7 +174,7 @@ export default function Perfil() {
                                 style={styles.input}
                                 value={email}
                                 onChangeText={setEmail}
-                                maxLength={30}
+                                maxLength={255}
                                 keyboardType="email-address"
                                 autoCapitalize="none"
                                 autoCorrect={false}

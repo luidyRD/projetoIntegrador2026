@@ -72,11 +72,17 @@ async function buscarPorId(id) {
     const album = mapAlbum(rows[0])
     album.musicas = await query(
         `SELECT id, titulo, numero_faixa AS numeroFaixa,
-                duracao_seg AS duracaoSegundos, audio_url AS audioUrl
+                duracao_seg AS duracaoSegundos,
+                CASE WHEN EXISTS (
+                    SELECT 1
+                    FROM artistas_independentes ai
+                    INNER JOIN albuns ai_album ON ai_album.artista_id = ai.artista_id
+                    WHERE ai_album.id = ?
+                ) THEN NULL ELSE audio_url END AS audioUrl
          FROM musicas
          WHERE album_id = ?
          ORDER BY numero_faixa`,
-        [id]
+        [id, id]
     )
     return album
 }
@@ -307,7 +313,7 @@ async function cadastrarArtistaIndependente({
                     faixa.titulo,
                     indice + 1,
                     null,
-                    faixa.audioUrl
+                    null
                 ]
             )
         }

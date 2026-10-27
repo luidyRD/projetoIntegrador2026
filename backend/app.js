@@ -5,7 +5,6 @@ const fs = require('fs')
 const path = require('path')
 const crypto = require('crypto')
 const { URL } = require('url')
-const Busboy = require('busboy')
 const AlbumBD = require('./database/AlbumBD')
 const PagamentoBD = require('./database/PagamentoBD')
 const UsuarioBD = require('./database/UsuarioBD')
@@ -13,20 +12,8 @@ const { criarToken, validarToken } = require('./autenticacao')
 const MercadoPago = require('./mercadopago')
 
 const maxBodyBytes = 64 * 1024
-const maxAudioBytes = 25 * 1024 * 1024
 const maxTracks = 10
 const audioDirectory = path.join(__dirname, 'uploads', 'audio')
-const audioTypes = new Map([
-    ['audio/mpeg', '.mp3'],
-    ['audio/mp4', '.m4a'],
-    ['audio/aac', '.aac'],
-    ['audio/wav', '.wav'],
-    ['audio/x-wav', '.wav'],
-    ['audio/ogg', '.ogg'],
-    ['audio/flac', '.flac'],
-    ['audio/x-flac', '.flac'],
-    ['audio/webm', '.webm']
-])
 
 fs.mkdirSync(audioDirectory, { recursive: true })
 
@@ -75,135 +62,7 @@ function lerJson(req) {
     })
 }
 
-function receberLancamento(req) {
-    return new Promise((resolve, reject) => {
-        let lancamentoJson = ''
-        let erro
-        let lancamentoRecebido = false
-        let finalizacao
-        const arquivos = []
-        const gravacoes = []
-        let parser
-
-        try {
-            parser = Busboy({
-                headers: req.headers,
-                limits: {
-                    fieldSize: 32 * 1024,
-                    fields: 1,
-                    files: maxTracks,
-                    parts: maxTracks + 1,
-                    fileSize: maxAudioBytes
-                }
-            })
-        } catch {
-            reject(new ApiError(400, 'Envie o cadastro como formulário com arquivos de áudio.'))
-            return
-        }
-
-        const registrarErro = (mensagem, statusCode = 400) => {
-            if (!erro) {
-                erro = new ApiError(statusCode, mensagem)
-            }
-        }
-
-        const finalizar = () => {
-            if (finalizacao) {
-                return finalizacao
-            }
-            finalizacao = (async () => {
-                await Promise.all(gravacoes)
-                let lancamento
-                if (!erro) {
-                    try {
-                        lancamento = JSON.parse(lancamentoJson)
-                    } catch {
-                        registrarErro('Os dados do lançamento estão em formato inválido.')
-                    }
-                }
-                if (erro) {
-                    await Promise.all(
-                        arquivos.map((arquivo) => fs.promises.rm(arquivo.path, { force: true }))
-                    )
-                    reject(erro)
-                    return
-                }
-                resolve({ lancamento, arquivos })
-            })()
-            return finalizacao
-        }
-
-        parser.on('field', (nome, valor, info) => {
-            if (info.valueTruncated) {
-                registrarErro('As informações do cadastro excedem o limite permitido.', 413)
-                return
-            }
-            if (nome !== 'lancamento' || lancamentoRecebido) {
-                registrarErro('O formulário contém campos inválidos.')
-                return
-            }
-            lancamentoRecebido = true
-            lancamentoJson = valor
-        })
-
-        parser.on('file', (nome, arquivo, info) => {
-            const extensao = audioTypes.get(info.mimeType)
-            if (!/^audio_\d+$/.test(nome) || !extensao) {
-                registrarErro('Envie somente arquivos MP3, M4A, AAC, WAV, OGG, FLAC ou WEBM.')
-                arquivo.resume()
-                return
-            }
-
-            const nomeArmazenado = `${crypto.randomUUID()}${extensao}`
-            const caminho = path.join(audioDirectory, nomeArmazenado)
-            const gravacao = fs.createWriteStream(caminho, { flags: 'wx' })
-            const registro = {
-                fieldName: nome,
-                audioUrl: `/midias/audio/${nomeArmazenado}`,
-                path: caminho
-            }
-            let bytesRecebidos = 0
-            arquivos.push(registro)
-            gravacoes.push(new Promise((resolveGravacao) => {
-                gravacao.on('error', (error) => {
-                    registrarErro('Não foi possível salvar um dos arquivos de áudio.', 500)
-                    resolveGravacao(error)
-                })
-                gravacao.on('finish', () => resolveGravacao())
-            }))
-            arquivo.on('limit', () => {
-                registrarErro('Cada arquivo de áudio deve ter no máximo 25 MB.', 413)
-            })
-            arquivo.on('data', (parte) => {
-                bytesRecebidos += parte.length
-            })
-            arquivo.on('end', () => {
-                if (bytesRecebidos === 0) {
-                    registrarErro('Os arquivos de áudio não podem estar vazios.')
-                }
-            })
-            arquivo.on('error', () => {
-                registrarErro('Não foi possível receber um dos arquivos de áudio.', 400)
-            })
-            arquivo.pipe(gravacao)
-        })
-
-        parser.on('fieldsLimit', () => registrarErro('O formulário contém campos demais.'))
-        parser.on('filesLimit', () => registrarErro(`Envie no máximo ${maxTracks} faixas.`))
-        parser.on('partsLimit', () => registrarErro('O formulário contém partes demais.'))
-        parser.on('error', () => registrarErro('Não foi possível ler os arquivos enviados.'))
-        parser.on('finish', finalizar)
-        parser.on('close', () => {
-            if (!req.complete) {
-                registrarErro('O envio do arquivo foi interrompido.')
-                finalizar()
-            }
-        })
-        req.pipe(parser)
-    })
-}
-
-function validarLancamento(lancamento, arquivos) {
+function validarLancamento(lancamento) {
     if (!lancamento || typeof lancamento !== 'object' || Array.isArray(lancamento)) {
         throw new ApiError(400, 'Preencha as informações do lançamento.')
     }
@@ -258,19 +117,10 @@ function validarLancamento(lancamento, arquivos) {
         lancamento.faixas.length > maxTracks ||
         lancamento.faixas.some((faixa) =>
             !faixa ||
-            !texto(faixa.titulo, 150) ||
-            !/^audio_\d+$/.test(faixa.fieldName)
+            !texto(faixa.titulo, 150)
         )
     ) {
-        throw new ApiError(400, `Informe de 1 a ${maxTracks} músicas, cada uma com título e arquivo de áudio.`)
-    }
-    const campos = new Set(lancamento.faixas.map((faixa) => faixa.fieldName))
-    if (
-        campos.size !== lancamento.faixas.length ||
-        arquivos.length !== campos.size ||
-        arquivos.some((arquivo) => !campos.has(arquivo.fieldName))
-    ) {
-        throw new ApiError(400, 'Cada faixa precisa ter exatamente um arquivo de áudio.')
+        throw new ApiError(400, `Informe de 1 a ${maxTracks} músicas, cada uma com título.`)
     }
     return {
         nome: lancamento.nomeArtista.trim(),
@@ -280,10 +130,7 @@ function validarLancamento(lancamento, arquivos) {
         tituloAlbum: lancamento.tituloAlbum.trim(),
         dataLancamento: lancamento.dataLancamento || null,
         capaUrl: lancamento.capaUrl?.trim() || null,
-        faixas: lancamento.faixas.map((faixa) => ({
-            titulo: faixa.titulo.trim(),
-            audioUrl: arquivos.find((arquivo) => arquivo.fieldName === faixa.fieldName).audioUrl
-        }))
+        faixas: lancamento.faixas.map((faixa) => ({ titulo: faixa.titulo.trim() }))
     }
 }
 
@@ -445,10 +292,10 @@ function validarCredenciais(nome, username, email, senha, cadastro = false) {
 
     const emailNormalizado = email.trim().toLowerCase()
     if (
-        emailNormalizado.length > 30 ||
+        emailNormalizado.length > 255 ||
         !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNormalizado)
     ) {
-        throw new ApiError(400, 'Informe um e-mail válido de até 30 caracteres.')
+        throw new ApiError(400, 'Informe um e-mail válido de até 255 caracteres.')
     }
     if (senha.length < 8 || senha.length > 72) {
         throw new ApiError(400, 'A senha deve ter entre 8 e 72 caracteres.')
@@ -495,8 +342,8 @@ function validarDadosPerfil(corpo) {
             'O nome de usuário deve ter de 3 a 30 caracteres: letras, números, ponto, hífen ou sublinhado.'
         )
     }
-    if (email.length > 30 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        throw new ApiError(400, 'Informe um e-mail válido de até 30 caracteres.')
+    if (email.length > 255 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        throw new ApiError(400, 'Informe um e-mail válido de até 255 caracteres.')
     }
 
     const senhaAtual = corpo.senhaAtual || ''
@@ -831,34 +678,21 @@ async function tratarRequisicao(req, res) {
 
     if (req.method === 'POST' && caminho === '/artistas-independentes') {
         const usuario = obterUsuario(req)
-        const { lancamento, arquivos } = await receberLancamento(req)
-        let dados
-        try {
-            dados = validarLancamento(lancamento, arquivos)
-        } catch (error) {
-            await Promise.all(
-                arquivos.map((arquivo) => fs.promises.rm(arquivo.path, { force: true }))
-            )
-            throw error
+        if (!req.headers['content-type']?.includes('application/json')) {
+            throw new ApiError(400, 'O cadastro deve ser enviado como JSON. Atualize o aplicativo e reinicie o backend.')
         }
-        try {
-            if (!(await AlbumBD.buscarGenero(dados.generoId))) {
-                throw new ApiError(400, 'O gênero selecionado não existe.')
-            }
-            const resultado = await AlbumBD.cadastrarArtistaIndependente({
-                usuarioId: usuario.id,
-                ...dados
-            })
-            enviar(res, 201, {
-                ...resultado,
-                message: 'Artista e álbum cadastrados com sucesso.'
-            })
-        } catch (error) {
-            await Promise.all(
-                arquivos.map((arquivo) => fs.promises.rm(arquivo.path, { force: true }))
-            )
-            throw error
+        const dados = validarLancamento(await lerJson(req))
+        if (!(await AlbumBD.buscarGenero(dados.generoId))) {
+            throw new ApiError(400, 'O gênero selecionado não existe.')
         }
+        const resultado = await AlbumBD.cadastrarArtistaIndependente({
+            usuarioId: usuario.id,
+            ...dados
+        })
+        enviar(res, 201, {
+            ...resultado,
+            message: 'Artista e álbum cadastrados com sucesso.'
+        })
         return
     }
 

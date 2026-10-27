@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import * as DocumentPicker from "expo-document-picker";
 import { Link, Stack, router } from "expo-router";
 import {
     ActivityIndicator,
@@ -14,28 +13,28 @@ import { Ionicons } from "@expo/vector-icons";
 import { albunsService, Genero } from "../../services/albuns";
 import { obterUsuarioSessao } from "../../services/auth";
 
-const maxTamanhoArquivo = 25 * 1024 * 1024;
 const maxFaixas = 10;
-
-type ArquivoSelecionado = {
-    uri: string;
-    nome: string;
-    mimeType: string | null;
-    tamanho: number | null;
-    arquivo: Blob | null;
-};
 
 type FaixaFormulario = {
     id: string;
     titulo: string;
-    arquivo: ArquivoSelecionado | null;
 };
 
 const novaFaixa = (): FaixaFormulario => ({
     id: `${Date.now()}-${Math.random()}`,
     titulo: "",
-    arquivo: null,
 });
+
+function formatarDataLancamento(valor: string) {
+    const digitos = valor.replace(/\D/g, "").slice(0, 8);
+    if (digitos.length <= 2) {
+        return digitos;
+    }
+    if (digitos.length <= 4) {
+        return `${digitos.slice(0, 2)}/${digitos.slice(2)}`;
+    }
+    return `${digitos.slice(0, 2)}/${digitos.slice(2, 4)}/${digitos.slice(4)}`;
+}
 
 export default function CadastroArtistaIndependente() {
     const [logado, setLogado] = useState<boolean | null>(null);
@@ -78,41 +77,6 @@ export default function CadastroArtistaIndependente() {
         );
     };
 
-    const escolherAudio = async (faixa: FaixaFormulario) => {
-        setErro("");
-        try {
-            const resultado = await DocumentPicker.getDocumentAsync({
-                type: "audio/*",
-                copyToCacheDirectory: true,
-                multiple: false,
-            });
-            if (resultado.canceled || !resultado.assets[0]) return;
-            const asset = resultado.assets[0];
-            if (asset.size && asset.size > maxTamanhoArquivo) {
-                setErro("Cada arquivo de áudio deve ter no máximo 25 MB.");
-                return;
-            }
-            const audio = asset.file
-                ? asset.file
-                : await fetch(asset.uri).then((response) => {
-                    if (!response.ok) throw new Error("Não foi possível ler o arquivo selecionado.");
-                    return response.blob();
-                });
-            atualizarFaixa(faixa.id, {
-                arquivo: {
-                    uri: asset.uri,
-                    nome: asset.name,
-                    mimeType: asset.mimeType ?? audio.type ?? null,
-                    tamanho: asset.size ?? null,
-                    arquivo: audio,
-                },
-                titulo: faixa.titulo || asset.name.replace(/\.[^.]+$/, ""),
-            });
-        } catch (error) {
-            setErro(error instanceof Error ? error.message : "Não foi possível selecionar o áudio.");
-        }
-    };
-
     const enviarCadastro = async () => {
         setErro("");
         if (!logado) {
@@ -123,13 +87,29 @@ export default function CadastroArtistaIndependente() {
             setErro("Preencha o nome do artista, o gênero e o nome do álbum.");
             return;
         }
-        if (!faixas.length || faixas.some((faixa) => !faixa.titulo.trim() || !faixa.arquivo)) {
-            setErro("Informe o título e selecione um arquivo de áudio para cada faixa.");
+        if (!faixas.length || faixas.some((faixa) => !faixa.titulo.trim())) {
+            setErro("Informe o título de cada faixa.");
             return;
         }
-        if (dataLancamento && !/^\d{4}-\d{2}-\d{2}$/.test(dataLancamento)) {
-            setErro("Use o formato AAAA-MM-DD para a data de lançamento.");
-            return;
+        let dataLancamentoIso = "";
+        if (dataLancamento) {
+            const correspondencia = dataLancamento.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+            if (!correspondencia) {
+                setErro("Informe a data no formato DD/MM/AAAA.");
+                return;
+            }
+            const [, dia, mes, ano] = correspondencia;
+            const data = new Date(Date.UTC(Number(ano), Number(mes) - 1, Number(dia)));
+            if (
+                Number(ano) < 1000 ||
+                data.getUTCFullYear() !== Number(ano) ||
+                data.getUTCMonth() !== Number(mes) - 1 ||
+                data.getUTCDate() !== Number(dia)
+            ) {
+                setErro("Informe uma data de lançamento válida.");
+                return;
+            }
+            dataLancamentoIso = `${ano}-${mes}-${dia}`;
         }
         if (capaUrl && !/^https:\/\/.+/i.test(capaUrl.trim())) {
             setErro("O endereço da capa deve começar com https://.");
@@ -145,14 +125,10 @@ export default function CadastroArtistaIndependente() {
                     biografia: biografia.trim(),
                     generoId,
                     tituloAlbum: tituloAlbum.trim(),
-                    dataLancamento: dataLancamento.trim(),
+                    dataLancamento: dataLancamentoIso,
                     capaUrl: capaUrl.trim(),
                 },
-                faixas.map((faixa) => ({
-                    titulo: faixa.titulo.trim(),
-                    arquivo: faixa.arquivo!.arquivo!,
-                    nomeArquivo: faixa.arquivo!.nome,
-                }))
+                faixas.map((faixa) => ({ titulo: faixa.titulo.trim() }))
             );
             router.replace({
                 pathname: "/artista/[id]",
@@ -170,8 +146,7 @@ export default function CadastroArtistaIndependente() {
             <Stack.Screen options={{ title: "Cadastrar artista independente" }} />
             <Text style={styles.titulo}>Publique seu projeto</Text>
             <Text style={styles.descricao}>
-                Informe os dados do artista e do álbum e envie os arquivos de áudio das faixas.
-                MP3, M4A, AAC, WAV, OGG, FLAC e WEBM até 25 MB por música.
+                Informe os dados do artista, do álbum e os títulos das músicas.
             </Text>
             {carregando ? (
                 <ActivityIndicator color="#e4b600" style={styles.feedback} />
@@ -224,11 +199,12 @@ export default function CadastroArtistaIndependente() {
                     />
                     <TextInput
                         style={styles.campo}
-                        placeholder="Data de lançamento (AAAA-MM-DD)"
+                        placeholder="Data de lançamento (DD/MM/AAAA)"
                         placeholderTextColor="#8E8E8E"
                         value={dataLancamento}
-                        onChangeText={setDataLancamento}
+                        onChangeText={(valor) => setDataLancamento(formatarDataLancamento(valor))}
                         maxLength={10}
+                        keyboardType="number-pad"
                     />
                     <TextInput
                         style={styles.campo}
@@ -257,7 +233,7 @@ export default function CadastroArtistaIndependente() {
 
                     <View style={styles.faixasTituloLinha}>
                         <View>
-                            <Text style={styles.secao}>Músicas e arquivos de áudio</Text>
+                            <Text style={styles.secao}>Músicas</Text>
                             <Text style={styles.dica}>Adicione de 1 a {maxFaixas} faixas.</Text>
                         </View>
                         {faixas.length < maxFaixas ? (
@@ -294,21 +270,9 @@ export default function CadastroArtistaIndependente() {
                                 onChangeText={(titulo) => atualizarFaixa(faixa.id, { titulo })}
                                 maxLength={150}
                             />
-                            <Pressable style={styles.botaoArquivo} onPress={() => void escolherAudio(faixa)}>
-                                <Ionicons name="cloud-upload-outline" size={21} color="#e4b600" />
-                                <Text style={styles.nomeArquivo} numberOfLines={1}>
-                                    {faixa.arquivo?.nome || "Importar arquivo de áudio *"}
-                                </Text>
-                            </Pressable>
-                            {faixa.arquivo?.tamanho ? (
-                                <Text style={styles.dica}>{(faixa.arquivo.tamanho / 1024 / 1024).toFixed(1)} MB</Text>
-                            ) : null}
                         </View>
                     ))}
 
-                    <Text style={styles.avisoArmazenamento}>
-                        Os áudios serão armazenados no servidor local deste projeto e ficarão disponíveis no catálogo.
-                    </Text>
                     {erro ? <Text style={styles.erro}>{erro}</Text> : null}
                     <Pressable
                         style={[styles.botaoPrincipal, enviando && styles.botaoDesativado]}
@@ -422,26 +386,6 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-    },
-    botaoArquivo: {
-        flexDirection: "row",
-        alignItems: "center",
-        gap: 10,
-        minHeight: 44,
-        paddingHorizontal: 10,
-        borderWidth: 1,
-        borderColor: "#444444",
-        borderRadius: 8,
-    },
-    nomeArquivo: {
-        color: "#D0D0D0",
-        flex: 1,
-    },
-    avisoArmazenamento: {
-        color: "#8E8E8E",
-        fontSize: 12,
-        lineHeight: 18,
-        marginTop: 6,
     },
     erro: {
         color: "#FF7777",

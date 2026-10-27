@@ -128,25 +128,11 @@ export const albunsService = {
             dataLancamento: string;
             capaUrl: string;
         },
-        faixas: { titulo: string; arquivo: Blob; nomeArquivo: string }[]
+        faixas: { titulo: string }[]
     ): Promise<{ artistaId: string; albumId: string; message: string }> {
-        const formulario = new FormData();
-        formulario.append(
-            "lancamento",
-            JSON.stringify({
-                ...lancamento,
-                faixas: faixas.map((faixa, indice) => ({
-                    titulo: faixa.titulo,
-                    fieldName: `audio_${indice}`,
-                })),
-            })
-        );
-        faixas.forEach((faixa, indice) => {
-            formulario.append(`audio_${indice}`, faixa.arquivo, faixa.nomeArquivo);
-        });
         return apiRequest("/artistas-independentes", {
             method: "POST",
-            body: formulario,
+            body: JSON.stringify({ ...lancamento, faixas }),
         });
     },
 

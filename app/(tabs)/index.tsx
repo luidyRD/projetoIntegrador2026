@@ -112,12 +112,7 @@ export default function App() {
                     <>
                         <InputBusca />
                         <View style={styles.linksCabecalho}>
-                            <Link href="/artistas" asChild>
-                                <Pressable style={styles.botaoPerfil}>
-                                    <Ionicons name="mic-outline" size={20} color="#e4b600" />
-                                    <Text style={styles.linkConta}>Artistas</Text>
-                                </Pressable>
-                            </Link>
+
                             <Link href={usuario ? "/perfil" : "/login"} asChild>
                                 <Pressable style={styles.botaoPerfil}>
                                     <Ionicons
