@@ -102,7 +102,7 @@ export default function Login() {
                                         onPress={() => setFeedback("A recuperação de senha ainda não está disponível.")}
                                         hitSlop={8}
                                     >
-                                        <Text style={styles.textLink}>Esqueceu a senha?</Text>
+                                    
                                     </Pressable>
                                 </View>
                                 <View style={styles.inputWrapper}>
