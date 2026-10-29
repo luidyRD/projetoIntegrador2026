@@ -29,6 +29,7 @@ export type Artista = {
     foto: string | null;
     totalAlbuns: number;
     biografia?: string | null;
+    spotifyUrl?: string | null;
     albuns?: Album[];
 };
 
@@ -123,6 +124,7 @@ export const albunsService = {
             nomeArtista: string;
             pais: string;
             biografia: string;
+            spotifyUrl: string;
             generoId: string;
             tituloAlbum: string;
             dataLancamento: string;

@@ -1,8 +1,8 @@
-require('dotenv').config()
+const path = require('path')
+require('dotenv').config({ path: path.join(__dirname, '.env') })
 
 const http = require('http')
 const fs = require('fs')
-const path = require('path')
 const crypto = require('crypto')
 const { URL } = require('url')
 const AlbumBD = require('./database/AlbumBD')
@@ -10,6 +10,7 @@ const PagamentoBD = require('./database/PagamentoBD')
 const UsuarioBD = require('./database/UsuarioBD')
 const { criarToken, validarToken } = require('./autenticacao')
 const MercadoPago = require('./mercadopago')
+const Pix = require('./pix')
 
 const maxBodyBytes = 64 * 1024
 const maxTracks = 10
@@ -92,6 +93,26 @@ function validarLancamento(lancamento) {
     if (lancamento.biografia !== undefined && (typeof lancamento.biografia !== 'string' || lancamento.biografia.trim().length > 3000)) {
         throw new ApiError(400, 'A biografia deve ter até 3.000 caracteres.')
     }
+    if (lancamento.spotifyUrl) {
+        try {
+            const spotify = new URL(lancamento.spotifyUrl)
+            if (
+                spotify.protocol !== 'https:' ||
+                spotify.hostname !== 'open.spotify.com' ||
+                !/^\/(?:intl-[a-z]{2}(?:-[a-z]{2})?\/)?artist\/[^/]+\/?$/i.test(spotify.pathname) ||
+                lancamento.spotifyUrl.length > 255
+            ) {
+                throw new Error('invalid Spotify URL')
+            }
+        } catch {
+            throw new ApiError(400, 'O perfil do Spotify deve ser uma URL HTTPS válida de até 255 caracteres.')
+        }
+    } else if (
+        lancamento.spotifyUrl !== undefined &&
+        (typeof lancamento.spotifyUrl !== 'string' || lancamento.spotifyUrl.length > 255)
+    ) {
+        throw new ApiError(400, 'O perfil do Spotify deve ser uma URL HTTPS válida de até 255 caracteres.')
+    }
     if (!Number.isInteger(Number(lancamento.generoId)) || Number(lancamento.generoId) < 1) {
         throw new ApiError(400, 'Selecione um gênero válido.')
     }
@@ -126,6 +147,7 @@ function validarLancamento(lancamento) {
         nome: lancamento.nomeArtista.trim(),
         pais: lancamento.pais?.trim() || null,
         biografia: lancamento.biografia?.trim() || null,
+        spotifyUrl: lancamento.spotifyUrl?.trim() || null,
         generoId: Number(lancamento.generoId),
         tituloAlbum: lancamento.tituloAlbum.trim(),
         dataLancamento: lancamento.dataLancamento || null,
@@ -364,7 +386,7 @@ function validarDadosPerfil(corpo) {
 async function tratarRequisicao(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*')
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS')
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
 
     if (req.method === 'OPTIONS') {
         res.writeHead(204)
@@ -580,8 +602,14 @@ async function tratarRequisicao(req, res) {
             independente: estado.independente,
             contaVinculada: estado.contaVinculada,
             souProprietario: estado.souProprietario,
-            pagamentosConfigurados: pagamentosProntos()
+            pagamentosConfigurados: pagamentosProntos(),
+            pixConfigurado: Pix.configurado()
         })
+        return
+    }
+
+    if (req.method === 'GET' && caminho === '/pix') {
+        enviar(res, 200, Pix.obterDados())
         return
     }
 
@@ -728,6 +756,7 @@ async function tratarRequisicao(req, res) {
             nome: artista.nome,
             pais: artista.pais,
             biografia: artista.biografia,
+            spotifyUrl: artista.spotifyUrl,
             foto: artista.foto,
             totalAlbuns: Number(artista.totalAlbuns),
             albuns: await AlbumBD.listarPorArtista(Number(rotaArtista[1]))

@@ -29,13 +29,17 @@ O banco usado pelo projeto já deve conter o catálogo. As avaliações usam a t
 
    Para salvar álbuns favoritos por conta, aplique também uma vez `backend/database/favoritos_albuns.sql` no banco `loginBD`.
 
-   Para habilitar os cadastros de artistas independentes, aplique também uma vez `backend/database/artistas_independentes.sql` no banco `loginBD`.
+   Para habilitar os cadastros de artistas independentes, aplique uma vez `backend/database/artistas_independentes.sql` no banco `loginBD`. Para adicionar o link do Spotify, aplique também uma vez `backend/database/spotify_artistas.sql` no banco `loginBD` (inclusive se a migração de artistas independentes já tiver sido aplicada). O formulário aceita opcionalmente a URL HTTPS do perfil do artista no Spotify; quando informada, ela aparece como botão no perfil público do artista.
 
-   Para habilitar apoio financeiro direto a artistas, aplique depois `backend/database/pagamentos_artistas.sql`. A integração usa checkout do Mercado Pago com Pix/cartão, sem carteira de moedas e sem comissão da plataforma configurada. O Mercado Pago pode cobrar as próprias taxas.
+   Para mostrar um QR Pix estático de uma conta central do projeto, preencha no `backend/.env`:
 
-   Configure no `backend/.env` as variáveis `MP_CLIENT_ID`, `MP_CLIENT_SECRET`, `MP_OAUTH_REDIRECT_URI`, `MP_OAUTH_RETURN_URL`, `MP_TOKEN_ENCRYPTION_KEY`, `MP_WEBHOOK_SECRET`, `MP_WEBHOOK_URL`, `MP_CHECKOUT_SUCCESS_URL`, `MP_CHECKOUT_PENDING_URL` e `MP_CHECKOUT_FAILURE_URL`. Crie uma aplicação no Mercado Pago e registre o mesmo endereço de callback HTTPS informado em `MP_OAUTH_REDIRECT_URI`. Webhook e retornos do checkout também precisam estar publicados em HTTPS; `localhost` não recebe notificações do provedor. `MP_OAUTH_RETURN_URL` pode ser `myapp://retorno-pagamento` para retornar ao aplicativo instalado ou uma página HTTPS.
+   ```dotenv
+   PIX_KEY=sua-chave-pix
+   PIX_RECEIVER_NAME=NOME DO RECEBEDOR
+   PIX_CITY=CIDADE
+   ```
 
-   Gere a chave de criptografia dos tokens com `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` e mantenha-a privada. O padrão `MP_CHECKOUT_MODE=sandbox` evita cobranças reais durante os testes; altere para `production` somente depois de validar a configuração e as contas recebedoras no ambiente de produção. Nunca coloque credenciais Mercado Pago no app Expo nem compartilhe o arquivo `.env`.
+   Use os dados exatamente como aparecem na conta que receberá os valores. O nome aceita até 25 caracteres e a cidade até 15; ambos devem ser informados sem acentos. Não compartilhe nem comite `backend/.env`. Não é necessário criar uma aplicação Mercado Pago nem aplicar a migração de pagamentos para usar esse QR Pix. As variáveis `MP_*` e a migração `backend/database/pagamentos_artistas.sql` são necessárias somente para os endpoints legados de checkout Mercado Pago.
 
 3. Configure o app:
 
@@ -43,7 +47,7 @@ O banco usado pelo projeto já deve conter o catálogo. As avaliações usam a t
    Copy-Item .env.exemplo .env
    ```
 
-   Para o Expo Web, `http://localhost:3000` pode ser usado como `EXPO_PUBLIC_API_URL`. Para o emulador Android, use `http://10.0.2.2:3000`. Para um celular físico, use o endereço IP local do computador na rede Wi-Fi, por exemplo `http://192.168.0.10:3000`.
+   Para o Expo Web, `http://localhost:3000` pode ser usado como `EXPO_PUBLIC_API_URL`. No app nativo, se essa URL estiver configurada, o app tenta usar automaticamente o host do servidor Expo para alcançar a API no computador. Se a conexão falhar, configure o endereço IP local do computador na mesma rede Wi-Fi, por exemplo `http://192.168.0.10:3000` (ou `http://10.0.2.2:3000` no emulador Android).
 
 4. Inicie a API e o Expo em terminais separados:
 
@@ -57,7 +61,7 @@ O banco usado pelo projeto já deve conter o catálogo. As avaliações usam a t
 
    Para abrir o aplicativo no navegador do mesmo computador, use `npm run web` no lugar de `npx expo start` e acesse `http://localhost:8081`.
 
-   A API disponibiliza `GET /health`, `GET /albuns`, `GET /albuns/:id`, `GET /albuns/:id/avaliacoes`, `POST /albuns/:id/avaliacoes`, `GET /generos`, `GET /generos/:id/albuns`, `GET /artistas`, `GET /artistas/:id`, `GET /artistas-independentes`, `GET /albuns-independentes`, `POST /artistas-independentes`, `POST /auth/registro`, `POST /auth/login`, `GET /auth/perfil` e `PUT /auth/perfil`.
+   Mantenha o backend rodando durante o uso do app. A API disponibiliza `GET /health`, `GET /pix`, `GET /albuns`, `GET /albuns/:id`, `GET /albuns/:id/avaliacoes`, `POST /albuns/:id/avaliacoes`, `GET /generos`, `GET /generos/:id/albuns`, `GET /artistas`, `GET /artistas/:id`, `GET /artistas-independentes`, `GET /albuns-independentes`, `POST /artistas-independentes`, `POST /auth/registro`, `POST /auth/login`, `GET /auth/perfil` e `PUT /auth/perfil`.
 
 Cadastro pede nome, nome de usuário, e-mail e senha; senhas são armazenadas com bcrypt. O botão de perfil da tela inicial acompanha a sessão e abre os dados da conta para alterar nome, nome de usuário, e-mail e senha. A senha atual é exigida para escolher uma nova. É necessário entrar para publicar uma avaliação. O token de acesso fica no armazenamento local do app e expira após sete dias.
 
@@ -79,15 +83,9 @@ Os arquivos enviados ficam em `backend/uploads/audio/` (pasta ignorada pelo Git)
 
 ## Apoio financeiro direto
 
-O artista independente conecta a própria conta Mercado Pago na página do perfil público do artista. A pessoa apoiadora escolhe um valor entre R$ 1,00 e R$ 1.000,00 e conclui o pagamento no checkout hospedado pelo Mercado Pago, que apresenta os métodos disponíveis para aquela conta, incluindo Pix e cartão quando habilitados. O app não coleta dados de cartão nem armazena saldo.
+As páginas de artistas independentes mostram o QR Pix estático da conta central configurada no `backend/.env`. A pessoa apoiadora escolhe o valor diretamente no aplicativo do banco. O endpoint público `GET /pix` devolve o código Pix e o nome do destinatário para o app montar o QR.
 
-- `GET /artistas/:id/apoio`: informa se o artista é independente, se vinculou uma conta e se o ambiente de pagamentos está configurado.
-- `POST /artistas/:id/pagamentos/conectar`: autenticado; cria o fluxo OAuth apenas para o proprietário do artista.
-- `POST /artistas/:id/apoios`: autenticado; cria um checkout em reais e retorna o link hospedado.
-- `GET /apoios/:referencia`: autenticado; consulta o estado somente para quem iniciou aquele apoio.
-- `POST /webhooks/mercadopago`: valida a assinatura e consulta o pagamento na API do provedor antes de atualizar seu estado no MySQL.
-
-Tokens OAuth são cifrados no banco com AES-256-GCM. Para aceitar apoio real, além da migração, é necessário configurar a aplicação e as URLs HTTPS públicas no Mercado Pago, fornecer o segredo do webhook e testar primeiro em sandbox. O estado de retorno do checkout não substitui a confirmação do webhook.
+Esse QR não identifica cada apoio nem confirma pagamentos automaticamente. Confira os recebimentos no extrato bancário. A conta que recebe é a conta central indicada por `PIX_KEY`, não a conta do artista exibido. Para usar checkout Mercado Pago com confirmação por webhook, a integração legada ainda exige a migração `backend/database/pagamentos_artistas.sql`, credenciais de uma aplicação e URLs públicas HTTPS configuradas no backend.
 
 ## Capas, faixas e álbuns internacionais
 

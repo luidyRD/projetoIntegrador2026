@@ -42,6 +42,7 @@ export default function CadastroArtistaIndependente() {
     const [nomeArtista, setNomeArtista] = useState("");
     const [pais, setPais] = useState("");
     const [biografia, setBiografia] = useState("");
+    const [spotifyUrl, setSpotifyUrl] = useState("");
     const [generoId, setGeneroId] = useState("");
     const [tituloAlbum, setTituloAlbum] = useState("");
     const [dataLancamento, setDataLancamento] = useState("");
@@ -115,6 +116,21 @@ export default function CadastroArtistaIndependente() {
             setErro("O endereço da capa deve começar com https://.");
             return;
         }
+        if (spotifyUrl) {
+            try {
+                const url = new URL(spotifyUrl.trim());
+                if (
+                    url.protocol !== "https:" ||
+                    url.hostname !== "open.spotify.com" ||
+                    !/^\/(?:intl-[a-z]{2}(?:-[a-z]{2})?\/)?artist\/[^/]+\/?$/i.test(url.pathname)
+                ) {
+                    throw new Error("invalid Spotify URL");
+                }
+            } catch {
+                setErro("Informe uma URL HTTPS válida do perfil do artista no Spotify.");
+                return;
+            }
+        }
 
         setEnviando(true);
         try {
@@ -123,6 +139,7 @@ export default function CadastroArtistaIndependente() {
                     nomeArtista: nomeArtista.trim(),
                     pais: pais.trim(),
                     biografia: biografia.trim(),
+                    spotifyUrl: spotifyUrl.trim(),
                     generoId,
                     tituloAlbum: tituloAlbum.trim(),
                     dataLancamento: dataLancamentoIso,
@@ -186,6 +203,16 @@ export default function CadastroArtistaIndependente() {
                         onChangeText={setBiografia}
                         multiline
                         maxLength={3000}
+                    />
+                    <TextInput
+                        style={styles.campo}
+                        placeholder="URL do perfil do artista no Spotify"
+                        placeholderTextColor="#8E8E8E"
+                        value={spotifyUrl}
+                        onChangeText={setSpotifyUrl}
+                        autoCapitalize="none"
+                        keyboardType="url"
+                        maxLength={255}
                     />
 
                     <Text style={styles.secao}>Informações do álbum</Text>

@@ -1,13 +1,16 @@
 import React from "react";
-import { FlatList, Image, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Link } from "expo-router";
 import { Album } from "../services/albuns";
 
 type Props = {
     albuns: Album[];
+    onRemove?: (albumId: string) => void;
+    removendoAlbumId?: string | null;
 };
 
-export default function AlbumLista({ albuns }: Props) {
+export default function AlbumLista({ albuns, onRemove, removendoAlbumId }: Props) {
     if (!albuns.length) {
         return <Text style={styles.feedback}>Nenhum álbum encontrado.</Text>;
     }
@@ -52,6 +55,22 @@ export default function AlbumLista({ albuns }: Props) {
                         </Link>
                         {item.ano ? <Text style={styles.ano}>{item.ano}</Text> : null}
                     </View>
+                    {onRemove ? (
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={`Remover ${item.titulo} dos favoritos`}
+                            accessibilityState={{ disabled: Boolean(removendoAlbumId) }}
+                            disabled={Boolean(removendoAlbumId)}
+                            onPress={() => onRemove(item.id)}
+                            style={styles.botaoRemover}
+                        >
+                            {removendoAlbumId === item.id ? (
+                                <ActivityIndicator color="#e4b600" />
+                            ) : (
+                                <Ionicons name="heart-dislike-outline" size={22} color="#e4b600" />
+                            )}
+                        </Pressable>
+                    ) : null}
                 </View>
             )}
         />
@@ -88,6 +107,12 @@ const styles = StyleSheet.create({
     detalhes: {
         flex: 1,
         gap: 6,
+    },
+    botaoRemover: {
+        width: 44,
+        height: 44,
+        alignItems: "center",
+        justifyContent: "center",
     },
     titulo: {
         color: "#FFFFFF",

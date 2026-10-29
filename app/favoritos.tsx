@@ -10,6 +10,8 @@ export default function FavoritosPage() {
     const [albuns, setAlbuns] = useState<Album[]>([]);
     const [carregando, setCarregando] = useState(true);
     const [erro, setErro] = useState("");
+    const [erroRemocao, setErroRemocao] = useState("");
+    const [removendoAlbumId, setRemovendoAlbumId] = useState<string | null>(null);
 
     const carregar = useCallback(async () => {
         setCarregando(true);
@@ -24,6 +26,23 @@ export default function FavoritosPage() {
             setCarregando(false);
         }
     }, []);
+
+    const removerFavorito = async (albumId: string) => {
+        if (removendoAlbumId !== null) return;
+
+        setRemovendoAlbumId(albumId);
+        setErroRemocao("");
+        try {
+            await favoritosService.remover(albumId);
+            setAlbuns((atuais) => atuais.filter((album) => album.id !== albumId));
+        } catch (error) {
+            setErroRemocao(
+                error instanceof Error ? error.message : "Não foi possível remover o álbum dos favoritos."
+            );
+        } finally {
+            setRemovendoAlbumId(null);
+        }
+    };
 
     useFocusEffect(
         useCallback(() => {
@@ -53,8 +72,13 @@ export default function FavoritosPage() {
             ) : usuario ? (
                 <>
                     <Text style={styles.titulo}>Seus álbuns favoritos</Text>
+                    {erroRemocao ? <Text style={styles.feedback}>{erroRemocao}</Text> : null}
                     {albuns.length ? (
-                        <AlbumLista albuns={albuns} />
+                        <AlbumLista
+                            albuns={albuns}
+                            onRemove={(albumId) => void removerFavorito(albumId)}
+                            removendoAlbumId={removendoAlbumId}
+                        />
                     ) : (
                         <Text style={styles.feedback}>
                             Você ainda não favoritou nenhum álbum. Abra um álbum e toque no coração para salvá-lo aqui.

@@ -158,48 +158,46 @@ export default function App() {
                                     Ainda não há álbuns independentes. Cadastre o primeiro projeto!
                                 </Text>
                             ) : (
-                                albunsIndependentes.map((artista) => (
-                                    <View key={artista.id} style={styles.linhaArtistaIndependente}>
-                                        <Link
-                                            href={{
-                                                pathname: "/artista/[id]",
-                                                params: { id: artista.id },
-                                            }}
-                                        >
-                                            <Text style={styles.nomeArtistaIndependente}>{artista.nome}</Text>
-                                        </Link>
-                                        <FlatList
-                                            data={artista.albuns}
-                                            keyExtractor={(album) => album.id}
-                                            horizontal
-                                            showsHorizontalScrollIndicator={false}
-                                            renderItem={({ item: album }) => (
-                                                <View style={styles.albumCard}>
-                                                    <Link
-                                                        href={{
-                                                            pathname: '/components/musica/[id]',
-                                                            params: { id: album.id },
-                                                        } as any}
-                                                    >
-                                                        {album.imagem ? (
-                                                            <Image
-                                                                source={{ uri: album.imagem }}
-                                                                style={styles.imagem}
-                                                                resizeMode="cover"
-                                                            />
-                                                        ) : (
-                                                            <View style={[styles.imagem, styles.semImagem]}>
-                                                                <Text style={styles.semImagemTexto}>Sem capa</Text>
-                                                            </View>
-                                                        )}
-                                                        <Text style={styles.albumTitulo}>{album.titulo}</Text>
-                                                    </Link>
-                                                    <Text style={styles.albumArtista}>{album.genero ?? 'Álbum independente'}</Text>
-                                                </View>
-                                            )}
-                                        />
-                                    </View>
-                                ))
+                                <FlatList
+                                    data={albunsIndependentes.flatMap((artista) => artista.albuns)}
+                                    keyExtractor={(album) => album.id}
+                                    horizontal
+                                    showsHorizontalScrollIndicator={false}
+                                    renderItem={({ item: album }) => (
+                                        <View style={styles.albumCard}>
+                                            <Link
+                                                href={{
+                                                    pathname: '/components/musica/[id]',
+                                                    params: { id: album.id },
+                                                } as any}
+                                            >
+                                                {album.imagem ? (
+                                                    <Image
+                                                        source={{ uri: album.imagem }}
+                                                        style={styles.imagem}
+                                                        resizeMode="cover"
+                                                    />
+                                                ) : (
+                                                    <View style={[styles.imagem, styles.semImagem]}>
+                                                        <Text style={styles.semImagemTexto}>Sem capa</Text>
+                                                    </View>
+                                                )}
+                                                <Text style={styles.albumTitulo}>{album.titulo}</Text>
+                                            </Link>
+                                            <Link
+                                                href={{
+                                                    pathname: "/artista/[id]",
+                                                    params: { id: album.artistaId },
+                                                }}
+                                            >
+                                                <Text style={styles.albumArtista}>{album.artista}</Text>
+                                            </Link>
+                                            <Text style={styles.albumArtista}>
+                                                {album.genero ?? 'Álbum independente'}
+                                            </Text>
+                                        </View>
+                                    )}
+                                />
                             )}
                         </View>
                     {categorias.length > 0 ? (
@@ -487,14 +485,6 @@ const styles = StyleSheet.create({
     textoBotaoCadastrar: {
         color: '#141414',
         fontSize: 13,
-        fontWeight: '700',
-    },
-    linhaArtistaIndependente: {
-        marginTop: 10,
-    },
-    nomeArtistaIndependente: {
-        color: '#FFFFFF',
-        fontSize: 17,
         fontWeight: '700',
     },
     feedbackIndependentes: {

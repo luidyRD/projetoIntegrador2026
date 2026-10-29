@@ -139,13 +139,13 @@ async function listarArtistas(busca) {
 
 async function buscarArtista(artistaId) {
     const rows = await query(
-        `SELECT ar.id, ar.nome, ar.pais, ar.biografia,
+        `SELECT ar.id, ar.nome, ar.pais, ar.biografia, ar.spotify_url AS spotifyUrl,
                 COALESCE(ar.foto_url, MIN(a.capa_url)) AS foto,
                 COUNT(DISTINCT a.id) AS totalAlbuns
          FROM artistas ar
          LEFT JOIN albuns a ON a.artista_id = ar.id
          WHERE ar.id = ?
-         GROUP BY ar.id, ar.nome, ar.pais, ar.biografia, ar.foto_url
+         GROUP BY ar.id, ar.nome, ar.pais, ar.biografia, ar.spotify_url, ar.foto_url
          LIMIT 1`,
         [artistaId]
     )
@@ -241,6 +241,7 @@ async function cadastrarArtistaIndependente({
     nome,
     pais,
     biografia,
+    spotifyUrl,
     generoId,
     tituloAlbum,
     dataLancamento,
@@ -269,15 +270,16 @@ async function cadastrarArtistaIndependente({
                 `UPDATE artistas
                  SET genero_id = ?,
                      pais = COALESCE(NULLIF(?, ''), pais),
-                     biografia = COALESCE(NULLIF(?, ''), biografia)
+                     biografia = COALESCE(NULLIF(?, ''), biografia),
+                     spotify_url = COALESCE(NULLIF(?, ''), spotify_url)
                  WHERE id = ?`,
-                [generoId, pais || '', biografia || '', artistaId]
+                [generoId, pais || '', biografia || '', spotifyUrl || '', artistaId]
             )
         } else {
             const artista = await executarQuery(
-                `INSERT INTO artistas (nome, genero_id, pais, biografia)
-                 VALUES (?, ?, ?, ?)`,
-                [nome, generoId, pais || null, biografia || null]
+                `INSERT INTO artistas (nome, genero_id, pais, biografia, spotify_url)
+                 VALUES (?, ?, ?, ?, ?)`,
+                [nome, generoId, pais || null, biografia || null, spotifyUrl || null]
             )
             artistaId = artista.insertId
             await executarQuery(

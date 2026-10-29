@@ -5,6 +5,12 @@ export type EstadoApoioArtista = {
     contaVinculada: boolean;
     souProprietario: boolean;
     pagamentosConfigurados: boolean;
+    pixConfigurado: boolean;
+};
+
+export type DadosPix = {
+    payload: string;
+    receiverName: string;
 };
 
 export type ApoioArtista = {
@@ -17,6 +23,10 @@ export type ApoioArtista = {
 };
 
 export const pagamentosService = {
+    obterPix(): Promise<DadosPix> {
+        return apiRequest("/pix");
+    },
+
     obterEstadoArtista(id: string): Promise<EstadoApoioArtista> {
         return apiRequest(`/artistas/${encodeURIComponent(id)}/apoio`);
     },
